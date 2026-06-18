@@ -90,6 +90,8 @@ jobs:
     # Only run when a PR is merged (not just closed)
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     env:
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
@@ -111,7 +113,7 @@ jobs:
       - name: Generate and Save PR Docs
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GCS_BUCKET: ${{ vars.GCS_BUCKET || 'omni-scribe-docs' }}
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET || 'omni-scribe-docs' }}
         run: omni-scribe generate --pr ${{ github.event.pull_request.number }}
 
       - name: Post PR comment
