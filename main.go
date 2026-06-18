@@ -35,26 +35,32 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, `omni-scribe — AI-generated documentation for Omnigraph PRs
 
 Usage:
-  omni-scribe generate --pr <number>   Fetch a PR, generate docs via Gemini, save to disk
-  omni-scribe serve [--port 8080]      Start the HTTP server to view generated docs
-  omni-scribe version                  Print version
-  omni-scribe help                     Show this help
+  omni-scribe generate --pr <number> [--repo <owner/repo>]   Fetch a PR, generate docs via Gemini, save to disk
+  omni-scribe serve [--port 8080]                            Start the HTTP server to view generated docs
+  omni-scribe version                                        Print version
+  omni-scribe help                                           Show this help
 
 Environment variables:
-  GEMINI_API_KEY   Required for 'generate'. Your Gemini API key.
-  DATA_DIR         Directory for stored docs (default: ./data)
-  PORT             Server port, overridden by --port flag (default: 8080)
+  GEMINI_API_KEY      Required for 'generate'. Your Gemini API key.
+  GITHUB_REPOSITORY   Used as default repository if --repo flag is not provided (default: ModernRelay/omnigraph).
+  DATA_DIR            Directory for stored docs (default: ./data)
+  PORT                Server port, overridden by --port flag (default: 8080)
 `)
 }
 
 func runGenerate(args []string) {
 	fs := flag.NewFlagSet("generate", flag.ExitOnError)
 	prNumber := fs.Int("pr", 0, "PR number to generate docs for")
+	repoFlag := fs.String("repo", "", "GitHub repository (owner/repo) - defaults to GITHUB_REPOSITORY env var or ModernRelay/omnigraph")
 	fs.Parse(args)
+
+	if *repoFlag != "" {
+		githubRepo = *repoFlag
+	}
 
 	if *prNumber == 0 {
 		fmt.Fprintln(os.Stderr, "Error: --pr flag is required")
-		fmt.Fprintln(os.Stderr, "Usage: omni-scribe generate --pr <number>")
+		fmt.Fprintln(os.Stderr, "Usage: omni-scribe generate --pr <number> [--repo <owner/repo>]")
 		os.Exit(1)
 	}
 
