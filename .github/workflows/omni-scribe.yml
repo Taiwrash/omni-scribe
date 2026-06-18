@@ -43,7 +43,7 @@ jobs:
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
-            const baseUrl = '${{ vars.OMNI_SCRIBE_URL || 'https://omni-scribe-docs.run.app' }}';
+            const baseUrl = '${{ secrets.OMNI_SCRIBE_URL || 'https://omni-scribe-docs.run.app' }}';
             const docsUrl = `${baseUrl}/pr/${prNumber}`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
