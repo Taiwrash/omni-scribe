@@ -82,16 +82,41 @@ func generateDocs(pr *PRData) (*GeneratedDocs, error) {
 	client := &http.Client{Timeout: 60 * time.Second}
 	url := fmt.Sprintf("%s?key=%s", geminiEndpoint, apiKey)
 
-	resp, err := client.Post(url, "application/json", bytes.NewReader(body))
+	var resp *http.Response
+	maxAttempts := 5
+	backoff := 2 * time.Second
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		resp, err = client.Post(url, "application/json", bytes.NewReader(body))
+		if err == nil {
+			if resp.StatusCode == http.StatusOK {
+				break
+			}
+			if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable {
+				respBody, _ := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				fmt.Fprintf(os.Stderr, "  ⚠ Gemini API returned %d (attempt %d/%d): %s. Retrying in %v...\n", resp.StatusCode, attempt, maxAttempts, strings.TrimSpace(string(respBody)), backoff)
+				time.Sleep(backoff)
+				backoff *= 2
+				continue
+			}
+			respBody, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			return nil, fmt.Errorf("Gemini API returned %d: %s", resp.StatusCode, string(respBody))
+		}
+
+		fmt.Fprintf(os.Stderr, "  ⚠ Network error calling Gemini API (attempt %d/%d): %v. Retrying in %v...\n", attempt, maxAttempts, err, backoff)
+		time.Sleep(backoff)
+		backoff *= 2
+	}
+
 	if err != nil {
-		return nil, fmt.Errorf("calling Gemini API: %w", err)
+		return nil, fmt.Errorf("calling Gemini API after %d attempts: %w", maxAttempts, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Gemini API returned %d after %d attempts", resp.StatusCode, maxAttempts)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Gemini API returned %d: %s", resp.StatusCode, string(respBody))
-	}
 
 	var gemResp geminiResponse
 	if err := json.NewDecoder(resp.Body).Decode(&gemResp); err != nil {
