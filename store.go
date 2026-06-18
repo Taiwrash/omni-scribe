@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
 )
 
 // StoredDoc is what gets persisted per PR.
@@ -166,7 +167,7 @@ func listDocs() ([]*StoredDoc, error) {
 		var docs []*StoredDoc
 		for {
 			attrs, err := it.Next()
-			if err == io.EOF {
+			if err == iterator.Done {
 				break
 			}
 			if err != nil {
