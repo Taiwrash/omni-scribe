@@ -32,7 +32,7 @@ jobs:
       - name: Generate and Save PR Docs
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GCS_BUCKET: ${{ vars.GCS_BUCKET || 'omni-scribe-docs' }}
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET || 'omni-scribe-docs' }}
         run: omni-scribe generate --pr ${{ github.event.pull_request.number }}
 
       - name: Post PR comment
