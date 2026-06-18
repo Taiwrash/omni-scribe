@@ -32,6 +32,12 @@ Set your Gemini API Key in your shell:
 export GEMINI_API_KEY="your_gemini_api_key_here"
 ```
 
+Optionally, set the default repository in your shell:
+
+```bash
+export GITHUB_REPOSITORY="owner/repo" # Defaults to ModernRelay/omnigraph if unset
+```
+
 If you plan to store documentation in Google Cloud Storage (GCS) instead of the local filesystem, also set:
 
 ```bash
@@ -41,10 +47,14 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/gcp-service-account-key.jso
 
 ### 3. Generate Docs for a PR
 
-To generate documentation for a specific Omnigraph PR (e.g., PR `#42`):
+To generate documentation for a specific PR (e.g., PR `#42`):
 
 ```bash
+# Runs on the repository specified by the --repo flag, the GITHUB_REPOSITORY env var, or defaults to ModernRelay/omnigraph:
 omni-scribe generate --pr 42
+
+# You can explicitly set the repository using the --repo flag:
+omni-scribe generate --pr 42 --repo owner/repo
 ```
 
 By default, this will save the output JSON to `./data/prs/42.json` (or to your GCS bucket if `GCS_BUCKET` is configured).

@@ -5,13 +5,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
 const (
 	githubAPIBase = "https://api.github.com"
-	omnigraphRepo = "ModernRelay/omnigraph"
 )
+
+var githubRepo = getGitHubRepo()
+
+func getGitHubRepo() string {
+	if repo := os.Getenv("GITHUB_REPOSITORY"); repo != "" {
+		return repo
+	}
+	return "ModernRelay/omnigraph"
+}
 
 type PRMetadata struct {
 	Number   int       `json:"number"`
@@ -67,7 +76,7 @@ func fetchPR(prNumber int) (*PRData, error) {
 }
 
 func fetchPRMeta(client *http.Client, prNumber int) (*PRMetadata, error) {
-	url := fmt.Sprintf("%s/repos/%s/pulls/%d", githubAPIBase, omnigraphRepo, prNumber)
+	url := fmt.Sprintf("%s/repos/%s/pulls/%d", githubAPIBase, githubRepo, prNumber)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -94,7 +103,7 @@ func fetchPRMeta(client *http.Client, prNumber int) (*PRMetadata, error) {
 }
 
 func fetchPRFiles(client *http.Client, prNumber int) ([]PRFile, error) {
-	url := fmt.Sprintf("%s/repos/%s/pulls/%d/files", githubAPIBase, omnigraphRepo, prNumber)
+	url := fmt.Sprintf("%s/repos/%s/pulls/%d/files", githubAPIBase, githubRepo, prNumber)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -121,7 +130,7 @@ func fetchPRFiles(client *http.Client, prNumber int) ([]PRFile, error) {
 }
 
 func fetchPRDiff(client *http.Client, prNumber int) (string, error) {
-	url := fmt.Sprintf("%s/repos/%s/pulls/%d", githubAPIBase, omnigraphRepo, prNumber)
+	url := fmt.Sprintf("%s/repos/%s/pulls/%d", githubAPIBase, githubRepo, prNumber)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
