@@ -13,8 +13,7 @@ import (
 
 const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
-// omnigraphContext is baked into every prompt so Gemini understands
-// what Omnigraph is without needing to look it up.
+// omnigraphContext describes Omnigraph for prompts targeting ModernRelay/omnigraph.
 const omnigraphContext = `
 Omnigraph is a typed property graph database built on Lance (a columnar storage format).
 Key concepts:
@@ -31,6 +30,42 @@ Key concepts:
 - Target users: developers building knowledge graphs, team context graphs, research tracking systems,
   and private self-hosted graph backends for AI agents.
 `
+
+// omniscribeContext describes omni-scribe itself for prompts targeting Taiwrash/omni-scribe.
+const omniscribeContext = `
+omni-scribe is an open-source CLI tool and web service that automatically generates AI-powered
+documentation for GitHub pull requests using the Gemini API.
+Key concepts:
+- CLI commands: 'generate' fetches a PR from GitHub and calls Gemini to produce a changelog and
+  conceptual explainer, saving results to JSON (locally or in Google Cloud Storage).
+- 'serve' starts an HTTP server that renders the stored JSON docs as styled HTML pages.
+- Storage backends: supports local filesystem (./data/prs/) or Google Cloud Storage (GCS_BUCKET env).
+- GitHub Actions integration: can be dropped into any repo as a workflow that runs on PR merge,
+  calls the Gemini API, stores docs in GCS, and posts a comment linking to the rendered page.
+- Deployment: ships as a Docker container suitable for Google Cloud Run.
+- Written in Go; intentionally dependency-light outside the GCS client library.
+- Target users: open-source maintainers and engineering teams who want automated PR documentation.
+`
+
+// repoContext returns the project description and technical writer persona to inject into the
+// Gemini prompt, based on whichever repository is currently active.
+func repoContext() (projectContext, persona, audience string) {
+	switch githubRepo {
+	case "ModernRelay/omnigraph":
+		return omnigraphContext,
+			"You are a technical writer for Omnigraph, an open source typed property graph database.",
+			"a developer who uses Omnigraph"
+	case "Taiwrash/omni-scribe":
+		return omniscribeContext,
+			"You are a technical writer for omni-scribe, an open source AI-powered PR documentation tool.",
+			"a developer who uses or contributes to omni-scribe"
+	default:
+		genericCtx := fmt.Sprintf("`%s` is a software project hosted on GitHub.", githubRepo)
+		return genericCtx,
+			fmt.Sprintf("You are a technical writer for the `%s` project.", githubRepo),
+			"a developer who works with this project"
+	}
+}
 
 // GeneratedDocs holds both outputs Gemini produces for a PR.
 type GeneratedDocs struct {
@@ -140,9 +175,11 @@ func buildPrompt(pr *PRData) string {
 		diff = diff[:20000] + "\n\n[diff truncated for length]"
 	}
 
-	return fmt.Sprintf(`You are a technical writer for Omnigraph, an open source typed property graph database.
+	projectContext, persona, audience := repoContext()
 
-Here is context about Omnigraph so you understand the project:
+	return fmt.Sprintf(`%s
+
+Here is context about the project so you understand what it does:
 %s
 
 You have been given a merged pull request. Your job is to produce two documents.
@@ -168,22 +205,22 @@ Diff:
 Produce exactly two sections, separated by the exact markers shown below. Do not add any other text outside these sections.
 
 <<<CHANGELOG>>>
-Write a user-facing changelog entry for this PR. One to three sentences. Plain prose. 
-No bullet points. No markdown headers. Write as if addressing a developer who uses 
-Omnigraph but did not read the PR. Explain what changed and why it matters to them. 
-Do not mention the PR number or the author name.
+Write a user-facing changelog entry for this PR. One to three sentences. Plain prose.
+No bullet points. No markdown headers. Write as if addressing %s who did not read the PR.
+Explain what changed and why it matters to them. Do not mention the PR number or the author name.
 <<<END_CHANGELOG>>>
 
 <<<EXPLAINER>>>
-Write a conceptual explainer for this change. Three to five paragraphs. Target a 
-developer who is new to Omnigraph and encountered this change for the first time. 
-Explain what the changed component does in Omnigraph, why this change was made, and 
-what it means for someone using or building on Omnigraph. Use plain prose. No bullet 
-points. No markdown headers inside paragraphs. You may use a single short heading per 
+Write a conceptual explainer for this change. Three to five paragraphs. Target
+%s who encountered this change for the first time.
+Explain what the changed component does in the project, why this change was made, and
+what it means for someone using or building on it. Use plain prose. No bullet
+points. No markdown headers inside paragraphs. You may use a single short heading per
 paragraph if it helps navigation.
 <<<END_EXPLAINER>>>
 `,
-		omnigraphContext,
+		persona,
+		projectContext,
 		pr.Meta.Number,
 		pr.Meta.Title,
 		pr.Meta.User.Login,
@@ -191,6 +228,8 @@ paragraph if it helps navigation.
 		pr.Meta.Body,
 		fileSummary,
 		diff,
+		audience,
+		audience,
 	)
 }
 
