@@ -80,6 +80,8 @@ jobs:
     # Only run when a PR is merged (not just closed)
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    env:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
     steps:
       - name: Set up Go
@@ -91,10 +93,10 @@ jobs:
         run: go install github.com/Taiwrash/omni-scribe@latest
 
       - name: Authenticate to Google Cloud
-        if: ${{ secrets.GCP_SA_KEY != '' }}
+        if: ${{ env.GCP_SA_KEY != '' }}
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ env.GCP_SA_KEY }}
 
       - name: Generate and Save PR Docs
         env:
