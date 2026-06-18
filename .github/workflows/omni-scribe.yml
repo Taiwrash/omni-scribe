@@ -9,6 +9,8 @@ jobs:
     # Only run when a PR is merged (not just closed)
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     env:
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
