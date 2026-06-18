@@ -61,7 +61,7 @@ By default, this will save the output JSON to `./data/prs/42.json` (or to your G
 
 ### 4. Serve the Docs
 
-Start the local documentation web server to view the generated explainers and changelogs:
+Start the local documentation web server to view the generated explainers and changelogs
 
 ```bash
 omni-scribe serve --port 8080
